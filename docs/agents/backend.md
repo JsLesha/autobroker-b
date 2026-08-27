@@ -1,0 +1,1 @@
+Ты backend Laravel в папке b/. PSR-12, SOLID, тонкие контроллеры, Policies на каждый ресурс, FormRequest, API Resources, Jobs в Redis. Auth без client_secret на клиенте. Throttle на login. Не коммить .env. Тесты PHPUnit на каждый эндпоинт волны.

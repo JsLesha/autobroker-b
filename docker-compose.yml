@@ -1,0 +1,214 @@
+services:
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: autobroker-nginx
+    ports:
+      - "${DOCKER_HTTP_PORT:-8080}:80"
+    volumes:
+      - ./:/var/www/html:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      app:
+        condition: service_started
+    networks: [autobroker]
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: autobroker-app
+    volumes:
+      - ./:/var/www/html
+    env_file: [.env]
+    environment:
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      REDIS_HOST: redis
+      CACHE_STORE: redis
+      SESSION_DRIVER: redis
+      QUEUE_CONNECTION: redis
+      FILESYSTEM_DISK: s3
+      AWS_ACCESS_KEY_ID: minio
+      AWS_SECRET_ACCESS_KEY: miniosecret
+      AWS_DEFAULT_REGION: us-east-1
+      AWS_BUCKET: autobroker
+      AWS_ENDPOINT: http://minio:9000
+      AWS_USE_PATH_STYLE_ENDPOINT: "true"
+      SCOUT_DRIVER: meilisearch
+      MEILISEARCH_HOST: http://meilisearch:7700
+      RUN_MIGRATIONS: "1"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks: [autobroker]
+
+  horizon:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: autobroker-horizon
+    volumes:
+      - ./:/var/www/html
+    env_file: [.env]
+    environment:
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      REDIS_HOST: redis
+      QUEUE_CONNECTION: redis
+      WAIT_FOR_DB: "1"
+    command: ["php", "artisan", "queue:work", "redis", "--sleep=1", "--tries=3", "--timeout=120"]
+    depends_on:
+      mysql:
+        condition: service_healthy
+      app:
+        condition: service_started
+    networks: [autobroker]
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: autobroker-scheduler
+    volumes:
+      - ./:/var/www/html
+    env_file: [.env]
+    environment:
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      REDIS_HOST: redis
+      QUEUE_CONNECTION: redis
+    command: ["php", "artisan", "schedule:work"]
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks: [autobroker]
+
+  reverb:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: autobroker-reverb
+    volumes:
+      - ./:/var/www/html
+    env_file: [.env]
+    environment:
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      REDIS_HOST: redis
+      BROADCAST_CONNECTION: reverb
+    command: ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8081"]
+    ports:
+      - "${DOCKER_REVERB_PORT:-8081}:8081"
+    depends_on:
+      app:
+        condition: service_started
+    networks: [autobroker]
+    profiles: ["realtime"]
+
+  mysql:
+    image: mysql:8.0
+    container_name: autobroker-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD:-root}"
+      MYSQL_DATABASE: autobroker
+      MYSQL_USER: autobroker
+      MYSQL_PASSWORD: secret
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "${DOCKER_MYSQL_PORT:-33066}:3306"
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\""]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    networks: [autobroker]
+
+  redis:
+    image: redis:7-alpine
+    container_name: autobroker-redis
+    ports:
+      - "${DOCKER_REDIS_PORT:-6380}:6379"
+    volumes:
+      - redis_data:/data
+    networks: [autobroker]
+
+  minio:
+    image: minio/minio:latest
+    container_name: autobroker-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: miniosecret
+    ports:
+      - "${DOCKER_MINIO_API_PORT:-9000}:9000"
+      - "${DOCKER_MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio_data:/data
+    networks: [autobroker]
+
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      sleep 3;
+      mc alias set local http://minio:9000 minio miniosecret;
+      mc mb -p local/autobroker || true;
+      exit 0;
+      "
+    networks: [autobroker]
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.11
+    container_name: autobroker-meili
+    environment:
+      MEILI_MASTER_KEY: masterKey_changeMe
+      MEILI_ENV: development
+    ports:
+      - "${DOCKER_MEILI_PORT:-7700}:7700"
+    volumes:
+      - meili_data:/meili_data
+    networks: [autobroker]
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: autobroker-mailpit
+    ports:
+      - "${DOCKER_MAILPIT_UI_PORT:-8025}:8025"
+      - "${DOCKER_MAILPIT_SMTP_PORT:-1025}:1025"
+    networks: [autobroker]
+
+  kafka:
+    image: bitnami/kafka:3.8
+    container_name: autobroker-kafka
+    profiles: ["kafka"]
+    environment:
+      KAFKA_CFG_NODE_ID: 0
+      KAFKA_CFG_PROCESS_ROLES: controller,broker
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 0@kafka:9093
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+    ports:
+      - "${DOCKER_KAFKA_PORT:-9092}:9092"
+    volumes:
+      - kafka_data:/bitnami
+    networks: [autobroker]
+
+networks:
+  autobroker:
+    driver: bridge
+
+volumes:
+  mysql_data:
+  redis_data:
+  minio_data:
+  meili_data:
+  kafka_data:

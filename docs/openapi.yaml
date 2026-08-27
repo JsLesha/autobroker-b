@@ -1,0 +1,75 @@
+openapi: 3.0.3
+info:
+  title: Autobroker API
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080/api/v1
+paths:
+  /auth/login:
+    post:
+      summary: Login (no client_secret)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string }
+                password: { type: string }
+                device: { type: string, enum: [spa, mobile] }
+      responses:
+        "200": { description: token + user }
+        "422": { description: invalid }
+  /auth/me:
+    get:
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: current user }
+  /auth/logout:
+    post:
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: ok }
+  /auth/impersonate/{user}:
+    post:
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: user
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: impersonation token }
+        "403": { description: not admin }
+  /lots:
+    get:
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { description: paginated lots } }
+    post:
+      security: [{ bearerAuth: [] }]
+      responses: { "201": { description: created } }
+  /lots/{lot}:
+    get:
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: lot, required: true, schema: { type: integer } }
+      responses: { "200": { description: lot card } }
+  /calculator/quote:
+    post:
+      responses: { "200": { description: public quote } }
+  /wallets/checksum:
+    get:
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { description: ledger checksum } }
+  /public/invoice/{token}:
+    get:
+      parameters:
+        - { in: path, name: token, required: true, schema: { type: string } }
+      responses: { "200": { description: preview } }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer

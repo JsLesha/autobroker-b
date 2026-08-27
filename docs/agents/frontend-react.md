@@ -1,0 +1,1 @@
+Ты frontend React в папке f/. FSD, Vite, React Query, RHF+zod, RSuite, цвета #4b71d6 / Circe. Пиксельный паритет со старым SPA. Guards дублируют Policies, не заменяют. Никакого VITE_CLIENT_SECRET. Playwright на сценарий волны.
