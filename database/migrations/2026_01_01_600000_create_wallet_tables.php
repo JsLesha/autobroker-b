@@ -40,7 +40,7 @@ return new class extends Migration
             $table->string('status', 32)->default('pending');
             $table->decimal('amount', 14, 2);
             $table->string('currency', 8)->default('BYN');
-            $table->json('payload')->nullable();
+            $table->jsonb('payload')->nullable();
             $table->timestamps();
         });
     }

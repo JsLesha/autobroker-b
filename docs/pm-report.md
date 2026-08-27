@@ -2,7 +2,7 @@
 
 Сделано в `D:\mySecret\autobroker`: монорепо `f` / `b` / `f-m`.
 
-- Docker в `b/`: nginx, php-fpm, queue, scheduler, mysql, redis, minio, meilisearch, mailpit; Kafka — профиль.
+- Docker в `b/`: nginx, php-fpm, queue, scheduler, **PostgreSQL 16**, redis, minio, meilisearch, mailpit; Kafka — профиль.
 - Laravel 13 (актуальный скелет 2026; план упоминал 12) + Sanctum без client_secret, Policies, RBAC, audit, encrypted credentials.
 - Схема всех доменов + ETL `legacy:import` + checksum кошельков.
 - React-кабинет: логин, меню по правам, лоты/карточка с табами, справочники, кошельки, prebid, калькуляторы, инвойс-preview.

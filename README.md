@@ -1,17 +1,19 @@
 # Backend (`b/`)
 
-Laravel 13, PHP 8.3, Sanctum, Redis-очереди, Docker.
+Laravel 13, PHP 8.3, **PostgreSQL 16**, Sanctum, Redis-очереди, Docker.
 
 ```bash
 cp .env.example .env
-# APP_KEY уже можно сгенерировать: docker run --rm -v ${PWD}:/app -w /app composer:2 php artisan key:generate
+# APP_KEY: docker run --rm -v ${PWD}:/app -w /app composer:2 php artisan key:generate
 docker compose up --build
 docker compose exec app php artisan migrate --seed
 ```
 
+Postgres с хоста: `localhost:54332` (user/password `autobroker` / `secret`).
+
 Тесты: `docker run --rm -v ${PWD}:/app -w /app composer:2 php artisan test`
 
-ETL: `php artisan legacy:import --path=/dumps/prod.sql --sanitize --dry-run`
+ETL (MySQL-прод → PostgreSQL): `php artisan legacy:import --path=/dumps/prod.sql --sanitize --dry-run`
 
 Kafka: `docker compose --profile kafka up`
 

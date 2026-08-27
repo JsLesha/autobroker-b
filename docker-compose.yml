@@ -21,9 +21,9 @@ services:
       - ./:/var/www/html
     env_file: [.env]
     environment:
-      DB_CONNECTION: mysql
-      DB_HOST: mysql
-      DB_PORT: "3306"
+      DB_CONNECTION: pgsql
+      DB_HOST: pgsql
+      DB_PORT: "5432"
       REDIS_HOST: redis
       CACHE_STORE: redis
       SESSION_DRIVER: redis
@@ -39,7 +39,7 @@ services:
       MEILISEARCH_HOST: http://meilisearch:7700
       RUN_MIGRATIONS: "1"
     depends_on:
-      mysql:
+      pgsql:
         condition: service_healthy
       redis:
         condition: service_started
@@ -54,14 +54,14 @@ services:
       - ./:/var/www/html
     env_file: [.env]
     environment:
-      DB_CONNECTION: mysql
-      DB_HOST: mysql
+      DB_CONNECTION: pgsql
+      DB_HOST: pgsql
       REDIS_HOST: redis
       QUEUE_CONNECTION: redis
       WAIT_FOR_DB: "1"
     command: ["php", "artisan", "queue:work", "redis", "--sleep=1", "--tries=3", "--timeout=120"]
     depends_on:
-      mysql:
+      pgsql:
         condition: service_healthy
       app:
         condition: service_started
@@ -76,13 +76,13 @@ services:
       - ./:/var/www/html
     env_file: [.env]
     environment:
-      DB_CONNECTION: mysql
-      DB_HOST: mysql
+      DB_CONNECTION: pgsql
+      DB_HOST: pgsql
       REDIS_HOST: redis
       QUEUE_CONNECTION: redis
     command: ["php", "artisan", "schedule:work"]
     depends_on:
-      mysql:
+      pgsql:
         condition: service_healthy
     networks: [autobroker]
 
@@ -95,8 +95,8 @@ services:
       - ./:/var/www/html
     env_file: [.env]
     environment:
-      DB_CONNECTION: mysql
-      DB_HOST: mysql
+      DB_CONNECTION: pgsql
+      DB_HOST: pgsql
       REDIS_HOST: redis
       BROADCAST_CONNECTION: reverb
     command: ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8081"]
@@ -108,21 +108,31 @@ services:
     networks: [autobroker]
     profiles: ["realtime"]
 
-  mysql:
-    image: mysql:8.0
-    container_name: autobroker-mysql
+  pgsql:
+    image: postgres:16-alpine
+    container_name: autobroker-pgsql
     environment:
-      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD:-root}"
-      MYSQL_DATABASE: autobroker
-      MYSQL_USER: autobroker
-      MYSQL_PASSWORD: secret
+      POSTGRES_DB: autobroker
+      POSTGRES_USER: autobroker
+      POSTGRES_PASSWORD: secret
     volumes:
-      - mysql_data:/var/lib/mysql
+      - pgsql_data:/var/lib/postgresql/data
     ports:
-      - "${DOCKER_MYSQL_PORT:-33066}:3306"
-    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+      - "${DOCKER_PGSQL_PORT:-54332}:5432"
+    command:
+      - postgres
+      - -c
+      - max_connections=200
+      - -c
+      - shared_buffers=128MB
+      - -c
+      - work_mem=8MB
+      - -c
+      - wal_compression=on
+      - -c
+      - random_page_cost=1.1
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\""]
+      test: ["CMD-SHELL", "pg_isready -U autobroker -d autobroker"]
       interval: 5s
       timeout: 5s
       retries: 30
@@ -207,7 +217,7 @@ networks:
     driver: bridge
 
 volumes:
-  mysql_data:
+  pgsql_data:
   redis_data:
   minio_data:
   meili_data:

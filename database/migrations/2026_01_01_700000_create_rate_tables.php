@@ -30,7 +30,7 @@ return new class extends Migration
         Schema::create('rate_items', function (Blueprint $table) {
             $table->id();
             $table->foreignId('rate_version_id')->constrained('rate_versions')->cascadeOnDelete();
-            $table->json('dimensions');
+            $table->jsonb('dimensions');
             $table->decimal('amount', 14, 2);
             $table->string('currency', 8)->default('USD');
             $table->timestamps();

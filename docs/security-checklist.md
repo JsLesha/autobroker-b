@@ -12,4 +12,4 @@
 - [x] Telescope не подключён в prod-скелете
 - [ ] Certificate pinning Flutter на проде
 - [ ] WAF / fail2ban на периметре
-- [ ] Регулярный backup MySQL + MinIO
+- [ ] Регулярный backup PostgreSQL + MinIO

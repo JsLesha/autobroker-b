@@ -19,7 +19,7 @@ return new class extends Migration
             $table->timestamp('sailed_at')->nullable();
             $table->timestamp('arrived_at')->nullable();
             $table->timestamp('delivered_at')->nullable();
-            $table->json('timeline')->nullable();
+            $table->jsonb('timeline')->nullable();
             $table->timestamps();
         });
 

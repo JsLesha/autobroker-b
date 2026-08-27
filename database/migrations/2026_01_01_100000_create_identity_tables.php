@@ -36,10 +36,10 @@ return new class extends Migration
         });
 
         Schema::table('users', function (Blueprint $table) {
-            $table->foreignId('role_id')->nullable()->after('id')->constrained('roles')->nullOnDelete();
-            $table->foreignId('department_id')->nullable()->after('role_id')->constrained('departments')->nullOnDelete();
-            $table->string('nickname')->nullable()->after('name');
-            $table->boolean('active')->default(true)->after('password');
+            $table->foreignId('role_id')->nullable()->constrained('roles')->nullOnDelete();
+            $table->foreignId('department_id')->nullable()->constrained('departments')->nullOnDelete();
+            $table->string('nickname')->nullable();
+            $table->boolean('active')->default(true);
             $table->boolean('active_prebid')->default(false);
             $table->boolean('is_office_dealer')->default(false);
             $table->unsignedBigInteger('telegram_id')->nullable();
@@ -98,7 +98,7 @@ return new class extends Migration
             $table->string('action', 64);
             $table->string('entity_type', 128)->nullable();
             $table->unsignedBigInteger('entity_id')->nullable();
-            $table->json('meta')->nullable();
+            $table->jsonb('meta')->nullable();
             $table->string('ip_address', 45)->nullable();
             $table->timestamps();
             $table->index(['entity_type', 'entity_id']);

@@ -66,7 +66,7 @@ return new class extends Migration
             $table->string('provider', 32)->index();
             $table->string('direction', 16);
             $table->string('status', 32);
-            $table->json('payload')->nullable();
+            $table->jsonb('payload')->nullable();
             $table->text('error')->nullable();
             $table->timestamps();
         });

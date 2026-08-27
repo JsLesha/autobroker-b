@@ -40,8 +40,8 @@ return new class extends Migration
         });
 
         Schema::table('lots', function (Blueprint $table) {
-            $table->foreignId('counterparty_id')->nullable()->after('buyer_user_id')->constrained('counterparties')->nullOnDelete();
-            $table->foreignId('credential_id')->nullable()->after('counterparty_id')->constrained('credentials')->nullOnDelete();
+            $table->foreignId('counterparty_id')->nullable()->constrained('counterparties')->nullOnDelete();
+            $table->foreignId('credential_id')->nullable()->constrained('credentials')->nullOnDelete();
         });
     }
 

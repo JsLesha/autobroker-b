@@ -57,7 +57,7 @@ class ImportLegacyCommand extends Command
             ['lots', (string) Lot::query()->count()],
         ]);
 
-        $this->info('ETL finished. Provide a mysqldump via --path for full load.');
+        $this->info('Target is PostgreSQL. Source dump is still MySQL (prod). Pass --path to a dump or point LEGACY_DB_* at a replica.');
 
         return self::SUCCESS;
     }
