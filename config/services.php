@@ -61,7 +61,12 @@ return [
 
     'dealer_calc' => [
         'sso_secret' => env('DEALER_CALC_SSO_SECRET'),
-        'callback' => env('DEALER_CALC_SSO_CALLBACK_URL'),
+        'sso_callback_url' => env('DEALER_CALC_SSO_CALLBACK_URL'),
+        'sso_token_ttl' => env('DEALER_CALC_SSO_TOKEN_TTL', 60),
+    ],
+
+    'auction_agent' => [
+        'url' => env('AUCTION_AGENT_URL', 'http://127.0.0.1:4000'),
     ],
 
     'kafka' => [

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Integrations\Aec\AecClient;
+use App\Integrations\AuctionAgent\AuctionAgentClient;
 use App\Integrations\Bitrix\BitrixClient;
 use App\Integrations\Copart\CopartClient;
 use App\Integrations\Telegram\TelegramClient;
@@ -28,6 +29,7 @@ class IntegrationController extends Controller
             app(VinCheckClient::class),
             app(BitrixClient::class),
             app(TelegramClient::class),
+            app(AuctionAgentClient::class),
         ];
 
         return response()->json(array_map(fn ($c) => [
@@ -117,6 +119,29 @@ class IntegrationController extends Controller
         $info = $client->sendMessage($data['chat_id'], $data['text']);
 
         return response()->json($info);
+    }
+
+    public function auctionSession(Request $request, AuctionAgentClient $client): JsonResponse
+    {
+        abort_unless($request->user()?->hasPermission('credentials.read'), 403);
+        $data = $request->validate(['credential_id' => ['required', 'integer', 'exists:credentials,id']]);
+        $info = $client->session((int) $data['credential_id']);
+
+        return response()->json($info);
+    }
+
+    public function auctionBid(Request $request, AuctionAgentClient $client): JsonResponse
+    {
+        abort_unless($request->user()?->hasPermission('credentials.read'), 403);
+        $data = $request->validate([
+            'session_id' => ['required', 'string', 'max:191'],
+            'lot' => ['required', 'string', 'max:64'],
+            'amount' => ['required', 'numeric', 'min:0'],
+        ]);
+        $info = $client->submitBid($data['session_id'], $data['lot'], (float) $data['amount']);
+        IngestExternalEventJob::dispatch('auction-agent', $info);
+
+        return response()->json($info, 201);
     }
 
     public function vinCallback(Request $request): JsonResponse

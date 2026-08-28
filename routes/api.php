@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\CatalogController;
+use App\Http\Controllers\Api\V1\DealerCalcController;
 use App\Http\Controllers\Api\V1\FinanceController;
 use App\Http\Controllers\Api\V1\IntegrationController;
 use App\Http\Controllers\Api\V1\LogisticsController;
@@ -37,6 +38,7 @@ Route::prefix('v1')->group(function (): void {
         Route::get('auth/me', [AuthController::class, 'me']);
         Route::post('auth/offer/accept', [AuthController::class, 'acceptOffer']);
         Route::post('auth/impersonate/{user}', [AuthController::class, 'impersonate']);
+        Route::get('dealer-calc/sso', [DealerCalcController::class, 'sso']);
 
         Route::get('users', [UserController::class, 'index']);
         Route::post('users', [UserController::class, 'store']);
@@ -120,6 +122,8 @@ Route::prefix('v1')->group(function (): void {
         Route::post('integrations/copart/lookup', [IntegrationController::class, 'copartLookup']);
         Route::post('integrations/bitrix/lead', [IntegrationController::class, 'bitrixLead']);
         Route::post('integrations/telegram/send', [IntegrationController::class, 'telegramSend']);
+        Route::post('integrations/auction/session', [IntegrationController::class, 'auctionSession']);
+        Route::post('integrations/auction/bid', [IntegrationController::class, 'auctionBid']);
     });
 });
 
