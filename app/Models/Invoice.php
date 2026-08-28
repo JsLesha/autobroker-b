@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
 
 #[Fillable([
-    'lot_id', 'number', 'status', 'amount', 'currency', 'docx_path', 'pdf_path',
+    'lot_id', 'number', 'status', 'amount', 'currency', 'docx_path', 'pdf_path', 'html_path',
     'preview_token', 'preview_expires_at', 'accepted_at', 'rejected_at',
 ])]
 class Invoice extends Model

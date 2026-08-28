@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->group(function (): void {
     Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
     Route::post('auth/forgot', [AuthController::class, 'forgot'])->middleware('throttle:5,1');
+    Route::get('public/invoice/{token}/file', [FinanceController::class, 'file']);
     Route::get('public/invoice/{token}', [FinanceController::class, 'preview']);
     Route::post('public/invoice/{token}', [FinanceController::class, 'decidePreview'])->middleware('throttle:30,1');
     Route::post('calculator/quote', [RateController::class, 'quote']);
@@ -73,6 +74,8 @@ Route::prefix('v1')->group(function (): void {
         Route::get('lots/{lot}/invoices', [FinanceController::class, 'invoices']);
         Route::post('lots/{lot}/invoices', [FinanceController::class, 'storeInvoice']);
         Route::post('lots/{lot}/invoices/{invoice}/preview', [FinanceController::class, 'issuePreview']);
+        Route::post('lots/{lot}/invoices/{invoice}/document', [FinanceController::class, 'generateDocument']);
+        Route::get('lots/{lot}/invoices/{invoice}/file', [FinanceController::class, 'download']);
         Route::post('lots/{lot}/payments', [FinanceController::class, 'storePayment']);
 
         Route::get('wallets', [WalletController::class, 'accounts']);
