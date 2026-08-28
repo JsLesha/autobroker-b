@@ -7,8 +7,10 @@ use App\Http\Requests\Lot\StoreLotRequest;
 use App\Http\Requests\Lot\UpdateLotRequest;
 use App\Models\ChatMessage;
 use App\Models\Lot;
+use App\Models\LotDrop;
 use App\Models\LotImage;
 use App\Models\LotNote;
+use App\Models\UserNotification;
 use App\Services\LotService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -76,7 +78,7 @@ class LotController extends Controller
             'brand', 'model', 'auction', 'pricing', 'shipping', 'shippingEvents',
             'vehicle', 'client', 'route', 'images', 'lotNotes.user',
             'financeLines', 'invoices', 'payments', 'chat.messages.user',
-            'buyer', 'counterparty', 'credential', 'orderStatus',
+            'buyer', 'counterparty', 'credential', 'orderStatus', 'drops', 'notifications',
         ]));
     }
 
@@ -144,6 +146,67 @@ class LotController extends Controller
         ]);
 
         return response()->json($message->load('user'), 201);
+    }
+
+    public function storeDrop(Request $request, Lot $lot): JsonResponse
+    {
+        $this->authorize('update', $lot);
+        $data = $request->validate([
+            'title' => ['required', 'string', 'max:191'],
+            'file' => ['nullable', 'file', 'max:12288'],
+        ]);
+        $path = $request->file('file')?->store('lots/'.$lot->id.'/drops', 'local');
+        $drop = LotDrop::query()->create([
+            'lot_id' => $lot->id,
+            'title' => $data['title'],
+            'document_path' => $path,
+        ]);
+
+        return response()->json($drop, 201);
+    }
+
+    public function notifications(Lot $lot): JsonResponse
+    {
+        $this->authorize('view', $lot);
+
+        return response()->json($lot->notifications()->orderByDesc('id')->get());
+    }
+
+    public function storeNotification(Request $request, Lot $lot): JsonResponse
+    {
+        $this->authorize('update', $lot);
+        $data = $request->validate([
+            'title' => ['required', 'string', 'max:191'],
+            'body' => ['nullable', 'string', 'max:5000'],
+        ]);
+        $targetId = $lot->buyer_user_id ?: $request->user()->id;
+        $note = UserNotification::query()->create([
+            'user_id' => $targetId,
+            'lot_id' => $lot->id,
+            'title' => $data['title'],
+            'body' => $data['body'] ?? null,
+        ]);
+
+        return response()->json($note, 201);
+    }
+
+    public function export(Lot $lot): JsonResponse
+    {
+        $this->authorize('view', $lot);
+        $lot->load(['vehicle', 'client', 'pricing', 'route', 'buyer', 'counterparty', 'auction']);
+
+        return response()->json([
+            'vin' => $lot->vin,
+            'lot_number' => $lot->lot_number,
+            'status_order' => $lot->status_order,
+            'auction' => $lot->auction?->name ?? $lot->auction?->code,
+            'buyer' => $lot->buyer?->only(['id', 'name', 'email', 'nickname']),
+            'counterparty' => $lot->counterparty?->only(['id', 'name', 'type']),
+            'vehicle' => $lot->vehicle,
+            'client' => $lot->client,
+            'pricing' => $lot->pricing,
+            'route' => $lot->route,
+        ]);
     }
 
     private function applyFilters($query, Request $request): void

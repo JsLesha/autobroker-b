@@ -138,4 +138,14 @@ class Lot extends Model
     {
         return $this->belongsTo(Credential::class);
     }
+
+    public function drops(): HasMany
+    {
+        return $this->hasMany(LotDrop::class);
+    }
+
+    public function notifications(): HasMany
+    {
+        return $this->hasMany(UserNotification::class);
+    }
 }

@@ -53,6 +53,10 @@ Route::prefix('v1')->group(function (): void {
         Route::post('lots/{lot}/messages', [LotController::class, 'storeMessage']);
         Route::get('lots/{lot}/notes', [LotController::class, 'notes']);
         Route::post('lots/{lot}/notes', [LotController::class, 'storeNote']);
+        Route::post('lots/{lot}/drops', [LotController::class, 'storeDrop']);
+        Route::get('lots/{lot}/notifications', [LotController::class, 'notifications']);
+        Route::post('lots/{lot}/notifications', [LotController::class, 'storeNotification']);
+        Route::get('lots/{lot}/export', [LotController::class, 'export']);
 
         Route::get('shipping', [LogisticsController::class, 'shipping']);
         Route::patch('shipping/{shipping}', [LogisticsController::class, 'updateShipping']);
@@ -68,6 +72,7 @@ Route::prefix('v1')->group(function (): void {
         Route::post('lots/{lot}/finance-lines', [FinanceController::class, 'upsertLine']);
         Route::get('lots/{lot}/invoices', [FinanceController::class, 'invoices']);
         Route::post('lots/{lot}/invoices', [FinanceController::class, 'storeInvoice']);
+        Route::post('lots/{lot}/invoices/{invoice}/preview', [FinanceController::class, 'issuePreview']);
         Route::post('lots/{lot}/payments', [FinanceController::class, 'storePayment']);
 
         Route::get('wallets', [WalletController::class, 'accounts']);

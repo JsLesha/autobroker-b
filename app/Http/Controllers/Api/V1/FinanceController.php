@@ -72,6 +72,15 @@ class FinanceController extends Controller
         return response()->json($invoice, 201);
     }
 
+    public function issuePreview(Request $request, Lot $lot, Invoice $invoice): JsonResponse
+    {
+        abort_unless($request->user()?->hasPermission('finance.update'), 403);
+        abort_unless($invoice->lot_id === $lot->id, 404);
+        $invoice->issuePreviewToken();
+
+        return response()->json($invoice->fresh());
+    }
+
     public function preview(string $token): JsonResponse
     {
         $invoice = Invoice::query()->where('preview_token', $token)->firstOrFail();
