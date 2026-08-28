@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'prebid_auction_id', 'lot_id', 'seller_id', 'status',
-    'start_price', 'buy_now_price', 'current_price',
+    'start_price', 'buy_now_price', 'current_price', 'vin', 'year',
 ])]
 class PrebidListing extends Model
 {

@@ -22,6 +22,37 @@ class PrebidController extends Controller
         return response()->json($query->paginate(40));
     }
 
+    public function show(PrebidListing $listing): JsonResponse
+    {
+        return response()->json($listing->load(['seller', 'bids.user']));
+    }
+
+    public function store(Request $request): JsonResponse
+    {
+        abort_unless($request->user()?->hasPermission('prebid.create'), 403);
+
+        $data = $request->validate([
+            'vin' => ['nullable', 'string', 'max:32'],
+            'year' => ['nullable', 'integer', 'min:1980', 'max:2100'],
+            'start_price' => ['required', 'numeric', 'min:0'],
+            'buy_now_price' => ['nullable', 'numeric', 'min:0'],
+            'lot_id' => ['nullable', 'exists:lots,id'],
+        ]);
+
+        $listing = PrebidListing::query()->create([
+            'seller_id' => $request->user()->id,
+            'lot_id' => $data['lot_id'] ?? null,
+            'vin' => $data['vin'] ?? null,
+            'year' => $data['year'] ?? null,
+            'start_price' => $data['start_price'],
+            'current_price' => $data['start_price'],
+            'buy_now_price' => $data['buy_now_price'] ?? null,
+            'status' => 'moderation',
+        ]);
+
+        return response()->json($listing, 201);
+    }
+
     public function bid(Request $request, PrebidListing $listing): JsonResponse
     {
         abort_unless($request->user(), 401);

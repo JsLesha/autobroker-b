@@ -24,7 +24,8 @@ Route::prefix('v1')->group(function (): void {
     Route::get('auctions', [CatalogController::class, 'auctions']);
     Route::get('brands', [CatalogController::class, 'brands']);
     Route::get('status-orders', [CatalogController::class, 'statuses']);
-    Route::get('prebid/listings', [PrebidController::class, 'listings']);
+        Route::get('prebid/listings', [PrebidController::class, 'listings']);
+        Route::get('prebid/listings/{listing}', [PrebidController::class, 'show']);
     Route::post('integrations/vin-check/callback', [IntegrationController::class, 'vinCallback']);
     Route::post('integrations/telegram/webhook', [IntegrationController::class, 'telegramWebhook']);
 
@@ -80,9 +81,11 @@ Route::prefix('v1')->group(function (): void {
 
         Route::get('counterparties', [CatalogController::class, 'counterparties']);
         Route::post('counterparties', [CatalogController::class, 'storeCounterparty']);
+        Route::patch('counterparties/{counterparty}', [CatalogController::class, 'updateCounterparty']);
         Route::get('credentials', [CatalogController::class, 'credentials']);
         Route::post('credentials', [CatalogController::class, 'storeCredential']);
 
+        Route::post('prebid/listings', [PrebidController::class, 'store']);
         Route::post('prebid/listings/{listing}/bid', [PrebidController::class, 'bid']);
         Route::post('prebid/listings/{listing}/moderate', [PrebidController::class, 'moderate']);
 

@@ -21,4 +21,9 @@ class PrebidBid extends Model
     {
         return $this->belongsTo(PrebidListing::class, 'listing_id');
     }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
 }

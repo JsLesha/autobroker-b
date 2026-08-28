@@ -83,6 +83,23 @@ class CatalogController extends Controller
         return response()->json(Counterparty::query()->create($data), 201);
     }
 
+    public function updateCounterparty(Request $request, Counterparty $counterparty): JsonResponse
+    {
+        abort_unless($request->user()?->hasPermission('counterparties.update'), 403);
+
+        $data = $request->validate([
+            'type' => ['sometimes', 'string', 'max:32'],
+            'name' => ['sometimes', 'string'],
+            'email' => ['nullable', 'email'],
+            'phone' => ['nullable', 'string'],
+            'active' => ['sometimes', 'boolean'],
+        ]);
+
+        $counterparty->update($data);
+
+        return response()->json($counterparty->load('banks'));
+    }
+
     public function docFees(): JsonResponse
     {
         return response()->json(DocFee::query()->where('active', true)->orderBy('title')->get());
