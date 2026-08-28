@@ -27,6 +27,30 @@ class CatalogController extends Controller
         return response()->json(Cache::remember('catalog:countries', 3600, fn () => Country::query()->where('active', true)->orderBy('name')->get()));
     }
 
+    public function storeCountry(Request $request): JsonResponse
+    {
+        abort_unless($request->user()?->hasPermission('directory.create'), 403);
+        $data = $request->validate([
+            'code' => ['required', 'string', 'max:8', 'unique:countries,code'],
+            'name' => ['required', 'string', 'max:191'],
+        ]);
+        $row = Country::query()->create($data);
+        Cache::forget('catalog:countries');
+
+        return response()->json($row, 201);
+    }
+
+    public function storeCity(Request $request): JsonResponse
+    {
+        abort_unless($request->user()?->hasPermission('directory.create'), 403);
+        $data = $request->validate([
+            'country_id' => ['required', 'exists:countries,id'],
+            'name' => ['required', 'string', 'max:191'],
+        ]);
+
+        return response()->json(City::query()->create($data), 201);
+    }
+
     public function cities(Request $request): JsonResponse
     {
         $query = City::query()->with('country');
@@ -47,6 +71,19 @@ class CatalogController extends Controller
         return response()->json(Cache::remember('catalog:auctions', 3600, fn () => Auction::query()->where('active', true)->orderBy('name')->get()));
     }
 
+    public function storeAuction(Request $request): JsonResponse
+    {
+        abort_unless($request->user()?->hasPermission('directory.create'), 403);
+        $data = $request->validate([
+            'code' => ['required', 'string', 'max:32', 'unique:auctions,code'],
+            'name' => ['required', 'string', 'max:191'],
+        ]);
+        $row = Auction::query()->create($data);
+        Cache::forget('catalog:auctions');
+
+        return response()->json($row, 201);
+    }
+
     public function statuses(): JsonResponse
     {
         return response()->json(Cache::remember('catalog:status_orders', 3600, fn () => StatusOrder::query()->orderBy('sort')->get()));
@@ -55,6 +92,26 @@ class CatalogController extends Controller
     public function brands(): JsonResponse
     {
         return response()->json(TransportBrand::query()->with('models')->orderBy('name')->get());
+    }
+
+    public function storeBrand(Request $request): JsonResponse
+    {
+        abort_unless($request->user()?->hasPermission('directory.create'), 403);
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:191', 'unique:transport_brands,name'],
+        ]);
+
+        return response()->json(TransportBrand::query()->create($data), 201);
+    }
+
+    public function storeModel(Request $request, TransportBrand $brand): JsonResponse
+    {
+        abort_unless($request->user()?->hasPermission('directory.create'), 403);
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:191'],
+        ]);
+
+        return response()->json($brand->models()->create($data), 201);
     }
 
     public function counterparties(Request $request): JsonResponse

@@ -95,6 +95,11 @@ Route::prefix('v1')->group(function (): void {
         Route::patch('counterparties/{counterparty}', [CatalogController::class, 'updateCounterparty']);
         Route::get('credentials', [CatalogController::class, 'credentials']);
         Route::post('credentials', [CatalogController::class, 'storeCredential']);
+        Route::post('countries', [CatalogController::class, 'storeCountry']);
+        Route::post('cities', [CatalogController::class, 'storeCity']);
+        Route::post('auctions', [CatalogController::class, 'storeAuction']);
+        Route::post('brands', [CatalogController::class, 'storeBrand']);
+        Route::post('brands/{brand}/models', [CatalogController::class, 'storeModel']);
 
         Route::post('prebid/listings', [PrebidController::class, 'store']);
         Route::post('prebid/listings/{listing}/bid', [PrebidController::class, 'bid']);

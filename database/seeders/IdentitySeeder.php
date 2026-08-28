@@ -56,7 +56,8 @@ class IdentitySeeder extends Seeder
         ]);
         $this->grant($office, [
             'lots.read', 'lots.create', 'lots.update',
-            'directory.read', 'counterparties.read', 'counterparties.create', 'counterparties.update',
+            'directory.read', 'directory.create',
+            'counterparties.read', 'counterparties.create', 'counterparties.update',
             'credentials.read', 'credentials.create',
             'users.read', 'users.create', 'users.update',
         ]);
