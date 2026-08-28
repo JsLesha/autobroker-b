@@ -3,7 +3,6 @@
 namespace App\Integrations\VinCheck;
 
 use App\Integrations\AbstractStubClient;
-use App\Models\IntegrationLog;
 use Illuminate\Support\Facades\Http;
 
 class VinCheckClient extends AbstractStubClient
@@ -46,14 +45,8 @@ class VinCheckClient extends AbstractStubClient
         return $info;
     }
 
-    private function log(string $direction, string $status, array $payload, ?string $error = null): void
+    protected function configuredUrl(): string
     {
-        IntegrationLog::query()->create([
-            'provider' => $this->name(),
-            'direction' => $direction,
-            'status' => $status,
-            'payload' => $payload,
-            'error' => $error,
-        ]);
+        return rtrim((string) config('services.vin_check.base_url'), '/');
     }
 }

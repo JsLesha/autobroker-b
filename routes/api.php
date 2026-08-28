@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\FinanceController;
 use App\Http\Controllers\Api\V1\IntegrationController;
 use App\Http\Controllers\Api\V1\LogisticsController;
 use App\Http\Controllers\Api\V1\LotController;
+use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\PrebidController;
 use App\Http\Controllers\Api\V1\RateController;
 use App\Http\Controllers\Api\V1\RoleController;
@@ -52,6 +53,7 @@ Route::prefix('v1')->group(function (): void {
         Route::patch('lots/{lot}', [LotController::class, 'update']);
         Route::post('lots/{lot}/images', [LotController::class, 'storeImage']);
         Route::post('lots/{lot}/messages', [LotController::class, 'storeMessage']);
+        Route::get('lots/{lot}/messages', [LotController::class, 'messages']);
         Route::get('lots/{lot}/notes', [LotController::class, 'notes']);
         Route::post('lots/{lot}/notes', [LotController::class, 'storeNote']);
         Route::post('lots/{lot}/drops', [LotController::class, 'storeDrop']);
@@ -108,10 +110,16 @@ Route::prefix('v1')->group(function (): void {
         Route::post('prebid/listings/{listing}/bid', [PrebidController::class, 'bid']);
         Route::post('prebid/listings/{listing}/moderate', [PrebidController::class, 'moderate']);
 
+        Route::get('notifications', [NotificationController::class, 'index']);
+        Route::patch('notifications/{notification}/read', [NotificationController::class, 'markRead']);
         Route::get('integrations/status', [IntegrationController::class, 'status']);
         Route::get('integrations/logs', [IntegrationController::class, 'logs']);
         Route::post('integrations/vin-check', [IntegrationController::class, 'vinCheck']);
         Route::get('integrations/vin-reports', [IntegrationController::class, 'vinReports']);
+        Route::post('integrations/aec/lookup', [IntegrationController::class, 'aecLookup']);
+        Route::post('integrations/copart/lookup', [IntegrationController::class, 'copartLookup']);
+        Route::post('integrations/bitrix/lead', [IntegrationController::class, 'bitrixLead']);
+        Route::post('integrations/telegram/send', [IntegrationController::class, 'telegramSend']);
     });
 });
 

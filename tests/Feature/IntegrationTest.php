@@ -47,6 +47,16 @@ class IntegrationTest extends TestCase
             ->assertJsonFragment(['provider' => 'vin_check']);
     }
 
+    public function test_dealer_can_run_aec_stub_lookup(): void
+    {
+        $dealer = $this->user(RoleCode::Dealer);
+
+        $this->actingAs($dealer, 'sanctum')
+            ->postJson('/api/v1/integrations/aec/lookup', ['vin' => 'JT555555555555555'])
+            ->assertOk()
+            ->assertJsonPath('source', 'stub');
+    }
+
     public function test_dealer_cannot_see_integration_status(): void
     {
         $dealer = $this->user(RoleCode::Dealer);

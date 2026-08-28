@@ -68,4 +68,9 @@ return [
         'brokers' => env('KAFKA_BROKERS'),
     ],
 
+    'meilisearch' => [
+        'host' => env('MEILISEARCH_HOST'),
+        'key' => env('MEILISEARCH_KEY'),
+    ],
+
 ];

@@ -7,4 +7,6 @@ interface IntegrationClient
     public function name(): string;
 
     public function ping(): bool;
+
+    public function mode(): string;
 }

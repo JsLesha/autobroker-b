@@ -10,6 +10,8 @@ use App\Integrations\Telegram\TelegramClient;
 use App\Integrations\VinCheck\VinCheckClient;
 use App\Jobs\IngestExternalEventJob;
 use App\Models\IntegrationLog;
+use App\Models\User;
+use App\Models\UserNotification;
 use App\Models\VinCheckReport;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -31,7 +33,7 @@ class IntegrationController extends Controller
         return response()->json(array_map(fn ($c) => [
             'provider' => $c->name(),
             'ok' => $c->ping(),
-            'mode' => $c->name() === 'vin_check' && filled(config('services.vin_check.base_url')) ? 'live' : 'stub',
+            'mode' => $c->mode(),
         ], $clients));
     }
 
@@ -70,6 +72,53 @@ class IntegrationController extends Controller
         return response()->json($query->limit(50)->get());
     }
 
+    public function aecLookup(Request $request, AecClient $client): JsonResponse
+    {
+        abort_unless($request->user()?->hasPermission('lots.read'), 403);
+        $data = $request->validate(['vin' => ['required', 'string', 'max:32']]);
+        $info = $client->lookup($data['vin']);
+        IngestExternalEventJob::dispatch('aec', $info);
+
+        return response()->json($info);
+    }
+
+    public function copartLookup(Request $request, CopartClient $client): JsonResponse
+    {
+        abort_unless($request->user()?->hasPermission('lots.read'), 403);
+        $data = $request->validate(['lot' => ['required', 'string', 'max:64']]);
+        $info = $client->lookup($data['lot']);
+        IngestExternalEventJob::dispatch('copart', $info);
+
+        return response()->json($info);
+    }
+
+    public function bitrixLead(Request $request, BitrixClient $client): JsonResponse
+    {
+        abort_unless($request->user()?->isAdminLike() || $request->user()?->hasPermission('lots.update'), 403);
+        $data = $request->validate([
+            'title' => ['required', 'string', 'max:191'],
+            'name' => ['nullable', 'string', 'max:191'],
+            'phone' => ['nullable', 'string', 'max:64'],
+            'email' => ['nullable', 'email'],
+        ]);
+        $info = $client->pushLead($data);
+        IngestExternalEventJob::dispatch('bitrix', $info);
+
+        return response()->json($info, 201);
+    }
+
+    public function telegramSend(Request $request, TelegramClient $client): JsonResponse
+    {
+        abort_unless($request->user()?->isAdminLike(), 403);
+        $data = $request->validate([
+            'chat_id' => ['required'],
+            'text' => ['required', 'string', 'max:4000'],
+        ]);
+        $info = $client->sendMessage($data['chat_id'], $data['text']);
+
+        return response()->json($info);
+    }
+
     public function vinCallback(Request $request): JsonResponse
     {
         $secret = (string) config('services.vin_check.webhook_secret');
@@ -94,6 +143,20 @@ class IntegrationController extends Controller
         $secret = (string) config('services.telegram.webhook_secret');
         abort_if($secret === '', 503);
         abort_unless(hash_equals($secret, (string) $request->header('X-Telegram-Bot-Api-Secret-Token')), 403);
+
+        IngestExternalEventJob::dispatch('telegram', $request->all());
+        $from = data_get($request->all(), 'message.from.id');
+        $text = data_get($request->all(), 'message.text');
+        if ($from && $text) {
+            $user = User::query()->where('telegram_id', $from)->first();
+            if ($user) {
+                UserNotification::query()->create([
+                    'user_id' => $user->id,
+                    'title' => 'Telegram',
+                    'body' => is_string($text) ? $text : json_encode($text),
+                ]);
+            }
+        }
 
         return response()->json(['ok' => true]);
     }

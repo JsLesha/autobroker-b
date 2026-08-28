@@ -11,6 +11,7 @@ use App\Models\LotDrop;
 use App\Models\LotImage;
 use App\Models\LotNote;
 use App\Models\UserNotification;
+use App\Services\LotSearchService;
 use App\Services\LotService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,8 +20,10 @@ use Illuminate\Support\Facades\Schema;
 
 class LotController extends Controller
 {
-    public function __construct(private readonly LotService $lots)
-    {
+    public function __construct(
+        private readonly LotService $lots,
+        private readonly LotSearchService $search,
+    ) {
     }
 
     public function index(Request $request): JsonResponse
@@ -32,7 +35,20 @@ class LotController extends Controller
             ->with(['brand', 'model', 'auction', 'pricing', 'buyer', 'counterparty', 'client', 'route', 'orderStatus'])
             ->orderByDesc('id');
 
-        $this->applyFilters($query, $request);
+        $q = $request->string('q')->toString();
+        $fromSearch = false;
+        if ($q !== '') {
+            $ids = $this->search->searchIds($q);
+            if (is_array($ids)) {
+                $fromSearch = true;
+                if ($ids === []) {
+                    return response()->json($query->whereRaw('1 = 0')->paginate($request->integer('limit') ?: 40));
+                }
+                $query->whereIn('id', $ids);
+            }
+        }
+
+        $this->applyFilters($query, $request, $fromSearch);
 
         if ($request->boolean('auction_participant')) {
             $query->where('is_auction_participant', true);
@@ -148,6 +164,21 @@ class LotController extends Controller
         return response()->json($message->load('user'), 201);
     }
 
+    public function messages(Request $request, Lot $lot): JsonResponse
+    {
+        $this->authorize('view', $lot);
+        $chat = $lot->chat()->first();
+        if (! $chat) {
+            return response()->json([]);
+        }
+        $query = $chat->messages()->with('user')->orderBy('id');
+        if ($since = $request->integer('since_id')) {
+            $query->where('id', '>', $since);
+        }
+
+        return response()->json($query->limit(100)->get());
+    }
+
     public function storeDrop(Request $request, Lot $lot): JsonResponse
     {
         $this->authorize('update', $lot);
@@ -209,9 +240,9 @@ class LotController extends Controller
         ]);
     }
 
-    private function applyFilters($query, Request $request): void
+    private function applyFilters($query, Request $request, bool $skipQuery = false): void
     {
-        if ($search = $request->string('q')->toString()) {
+        if (! $skipQuery && ($search = $request->string('q')->toString())) {
             $query->where(function ($q) use ($search) {
                 $q->where('vin', 'like', "%{$search}%")
                     ->orWhere('lot_number', 'like', "%{$search}%")
