@@ -21,6 +21,11 @@ class UserPolicy
         return $user->id === $model->id || $user->hasPermission('users.update');
     }
 
+    public function create(User $user): bool
+    {
+        return $user->hasPermission('users.create');
+    }
+
     public function impersonate(User $user): bool
     {
         return $user->isAdminLike();

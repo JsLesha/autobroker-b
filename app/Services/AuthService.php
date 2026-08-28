@@ -75,7 +75,11 @@ class AuthService
             'role' => $user->role?->code,
             'rights' => $user->isAdminLike()
                 ? ['*']
-                : $user->role?->permissions->pluck('code')->values()->all() ?? [],
+                : collect($user->role?->permissions->pluck('code') ?? [])
+                    ->merge($user->extraPermissions()->pluck('code'))
+                    ->unique()
+                    ->values()
+                    ->all(),
             'public_offer' => $user->publicOfferPhase(),
         ];
     }

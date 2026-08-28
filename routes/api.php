@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\LogisticsController;
 use App\Http\Controllers\Api\V1\LotController;
 use App\Http\Controllers\Api\V1\PrebidController;
 use App\Http\Controllers\Api\V1\RateController;
+use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Controllers\Api\V1\WalletController;
 use Illuminate\Support\Facades\Route;
@@ -36,7 +37,12 @@ Route::prefix('v1')->group(function (): void {
         Route::post('auth/impersonate/{user}', [AuthController::class, 'impersonate']);
 
         Route::get('users', [UserController::class, 'index']);
+        Route::post('users', [UserController::class, 'store']);
         Route::get('users/{user}', [UserController::class, 'show']);
+        Route::patch('users/{user}', [UserController::class, 'update']);
+        Route::get('roles', [RoleController::class, 'index']);
+        Route::get('permissions', [RoleController::class, 'permissions']);
+        Route::put('roles/{role}/permissions', [RoleController::class, 'syncPermissions']);
 
         Route::get('lots', [LotController::class, 'index']);
         Route::get('lots/dictionaries', [LotController::class, 'dictionaries']);

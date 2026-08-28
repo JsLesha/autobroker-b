@@ -58,6 +58,7 @@ class IdentitySeeder extends Seeder
             'lots.read', 'lots.create', 'lots.update',
             'directory.read', 'counterparties.read', 'counterparties.create', 'counterparties.update',
             'credentials.read', 'credentials.create',
+            'users.read', 'users.create', 'users.update',
         ]);
         $this->grant($logist, ['lots.read', 'logistics.read', 'logistics.update', 'containers.read', 'containers.create', 'containers.update']);
         $this->grant($finance, ['lots.read', 'finance.read', 'finance.update', 'wallets.read', 'wallets.update']);
