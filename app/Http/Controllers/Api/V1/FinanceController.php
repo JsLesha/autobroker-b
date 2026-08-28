@@ -29,6 +29,10 @@ class FinanceController extends Controller
             'title' => ['required', 'string'],
             'amount' => ['required', 'numeric'],
             'currency' => ['sometimes', 'string', 'size:3'],
+            'is_paid' => ['sometimes', 'boolean'],
+            'is_ag' => ['sometimes', 'boolean'],
+            'finance_checked' => ['sometimes', 'boolean'],
+            'logist_checked' => ['sometimes', 'boolean'],
         ]);
 
         $line = FinanceLine::query()->updateOrCreate(
@@ -101,6 +105,8 @@ class FinanceController extends Controller
             'amount' => ['required', 'numeric'],
             'type' => ['sometimes', 'in:incoming,outgoing'],
             'method' => ['nullable', 'string', 'max:32'],
+            'comment' => ['nullable', 'string'],
+            'status' => ['sometimes', 'string', 'max:32'],
         ]);
 
         $payment = Payment::query()->create([
@@ -108,6 +114,8 @@ class FinanceController extends Controller
             'amount' => $data['amount'],
             'type' => $data['type'] ?? 'incoming',
             'method' => $data['method'] ?? null,
+            'comment' => $data['comment'] ?? null,
+            'status' => $data['status'] ?? 'draft',
             'created_by' => $request->user()->id,
         ]);
 

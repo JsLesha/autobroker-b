@@ -64,9 +64,11 @@ Route::prefix('v1')->group(function (): void {
         Route::post('lots/{lot}/payments', [FinanceController::class, 'storePayment']);
 
         Route::get('wallets', [WalletController::class, 'accounts']);
+        Route::get('wallets/entries', [WalletController::class, 'entries']);
         Route::post('wallets/transfer', [WalletController::class, 'transfer']);
         Route::get('wallets/checksum', [WalletController::class, 'checksum']);
         Route::get('erip', [WalletController::class, 'erip']);
+        Route::post('erip', [WalletController::class, 'storeErip']);
         Route::post('erip/{erip}/confirm', [WalletController::class, 'confirmErip']);
 
         Route::get('doc-fees', [CatalogController::class, 'docFees']);

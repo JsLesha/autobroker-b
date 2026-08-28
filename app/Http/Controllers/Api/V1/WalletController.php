@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\EripTransaction;
 use App\Models\LedgerAccount;
+use App\Models\LedgerEntry;
 use App\Services\LedgerService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -49,6 +50,21 @@ class WalletController extends Controller
         return response()->json(['batch_id' => $batch, 'checksum' => $this->ledger->checksum()], 201);
     }
 
+    public function entries(Request $request): JsonResponse
+    {
+        abort_unless($request->user()?->hasPermission('wallets.read'), 403);
+
+        $query = LedgerEntry::query()->with('account')->orderByDesc('id');
+        if ($account = $request->integer('account_id')) {
+            $query->where('account_id', $account);
+        }
+        if ($type = $request->string('type')->toString()) {
+            $query->whereHas('account', fn ($q) => $q->where('type', $type));
+        }
+
+        return response()->json($query->paginate($request->integer('limit') ?: 50));
+    }
+
     public function checksum(Request $request): JsonResponse
     {
         abort_unless($request->user()?->hasPermission('wallets.read'), 403);
@@ -61,6 +77,27 @@ class WalletController extends Controller
         abort_unless($request->user()?->hasPermission('wallets.read'), 403);
 
         return response()->json(EripTransaction::query()->orderByDesc('id')->paginate(40));
+    }
+
+    public function storeErip(Request $request): JsonResponse
+    {
+        abort_unless($request->user()?->hasPermission('wallets.update'), 403);
+
+        $data = $request->validate([
+            'amount' => ['required', 'numeric', 'min:0.01'],
+            'lot_id' => ['nullable', 'exists:lots,id'],
+            'external_id' => ['nullable', 'string', 'max:64'],
+        ]);
+
+        $erip = EripTransaction::query()->create([
+            'lot_id' => $data['lot_id'] ?? null,
+            'external_id' => $data['external_id'] ?? ('ERIP-'.now()->format('YmdHis')),
+            'status' => 'pending',
+            'amount' => $data['amount'],
+            'currency' => 'BYN',
+        ]);
+
+        return response()->json($erip, 201);
     }
 
     public function confirmErip(Request $request, EripTransaction $erip): JsonResponse

@@ -17,6 +17,8 @@ class FinanceLine extends Model
     {
         return [
             'amount' => 'decimal:2',
+            'is_paid' => 'boolean',
+            'is_ag' => 'boolean',
             'locked' => 'boolean',
         ];
     }
