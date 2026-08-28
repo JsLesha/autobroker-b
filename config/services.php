@@ -64,4 +64,8 @@ return [
         'callback' => env('DEALER_CALC_SSO_CALLBACK_URL'),
     ],
 
+    'kafka' => [
+        'brokers' => env('KAFKA_BROKERS'),
+    ],
+
 ];

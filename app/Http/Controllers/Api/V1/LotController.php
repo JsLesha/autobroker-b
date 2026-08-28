@@ -4,12 +4,16 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Lot\StoreLotRequest;
+use App\Http\Requests\Lot\UpdateLotRequest;
 use App\Models\ChatMessage;
 use App\Models\Lot;
 use App\Models\LotImage;
+use App\Models\LotNote;
 use App\Services\LotService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class LotController extends Controller
 {
@@ -21,22 +25,40 @@ class LotController extends Controller
     {
         $this->authorize('viewAny', Lot::class);
 
-        $query = Lot::query()->with(['brand', 'model', 'auction', 'pricing'])->orderByDesc('id');
+        $query = Lot::query()
+            ->visibleTo($request->user())
+            ->with(['brand', 'model', 'auction', 'pricing', 'buyer', 'counterparty', 'client', 'route', 'orderStatus'])
+            ->orderByDesc('id');
 
-        if ($search = $request->string('q')->toString()) {
-            $query->where(function ($q) use ($search) {
-                $q->where('vin', 'like', "%{$search}%")
-                    ->orWhere('lot_number', 'like', "%{$search}%");
-            });
+        $this->applyFilters($query, $request);
+
+        if ($request->boolean('auction_participant')) {
+            $query->where('is_auction_participant', true);
         }
 
-        if ($request->boolean('archived')) {
-            $query->where('archived', true);
-        } else {
-            $query->where('archived', false);
+        return response()->json($query->paginate($request->integer('limit') ?: 40));
+    }
+
+    public function dictionaries(): JsonResponse
+    {
+        $tables = [
+            'fuels' => 'transport_fuels',
+            'drives' => 'transport_drives',
+            'transmissions' => 'transport_transmissions',
+            'highlights' => 'transport_highlights',
+            'keys' => 'transport_keys',
+            'odometer_units' => 'transport_odometer_units',
+            'run_statuses' => 'transport_run_statuses',
+            'sizes' => 'transport_sizes',
+            'colors' => 'vehicle_colors',
+            'damages' => 'vehicle_damages',
+        ];
+        $out = [];
+        foreach ($tables as $key => $table) {
+            $out[$key] = Schema::hasTable($table) ? DB::table($table)->orderBy('id')->get() : [];
         }
 
-        return response()->json($query->paginate(40));
+        return response()->json($out);
     }
 
     public function store(StoreLotRequest $request): JsonResponse
@@ -51,24 +73,16 @@ class LotController extends Controller
         $this->authorize('view', $lot);
 
         return response()->json($lot->load([
-            'brand', 'model', 'auction', 'pricing', 'shipping', 'images',
+            'brand', 'model', 'auction', 'pricing', 'shipping', 'shippingEvents',
+            'vehicle', 'client', 'route', 'images', 'lotNotes.user',
             'financeLines', 'invoices', 'payments', 'chat.messages.user',
+            'buyer', 'counterparty', 'credential', 'orderStatus',
         ]));
     }
 
-    public function update(Request $request, Lot $lot): JsonResponse
+    public function update(UpdateLotRequest $request, Lot $lot): JsonResponse
     {
-        $this->authorize('update', $lot);
-
-        $lot->update($request->validate([
-            'status_order' => ['sometimes', 'string', 'max:64'],
-            'status_shipping' => ['sometimes', 'string', 'max:64'],
-            'status_finance' => ['sometimes', 'string', 'max:64'],
-            'notes' => ['nullable', 'string'],
-            'archived' => ['sometimes', 'boolean'],
-        ]));
-
-        return response()->json($lot->fresh(['pricing', 'shipping']));
+        return response()->json($this->lots->update($lot, $request->validated()));
     }
 
     public function storeImage(Request $request, Lot $lot): JsonResponse
@@ -91,6 +105,31 @@ class LotController extends Controller
         return response()->json($image, 201);
     }
 
+    public function notes(Lot $lot): JsonResponse
+    {
+        $this->authorize('view', $lot);
+
+        return response()->json($lot->lotNotes()->with('user')->orderByDesc('id')->get());
+    }
+
+    public function storeNote(Request $request, Lot $lot): JsonResponse
+    {
+        $this->authorize('update', $lot);
+        $data = $request->validate([
+            'body' => ['required', 'string', 'max:2000'],
+            'noted_on' => ['nullable', 'date'],
+        ]);
+        $note = LotNote::query()->create([
+            'lot_id' => $lot->id,
+            'user_id' => $request->user()->id,
+            'body' => $data['body'],
+            'noted_on' => $data['noted_on'] ?? now()->toDateString(),
+            'lot_label' => $lot->lot_number,
+        ]);
+
+        return response()->json($note->load('user'), 201);
+    }
+
     public function storeMessage(Request $request, Lot $lot): JsonResponse
     {
         $this->authorize('view', $lot);
@@ -105,5 +144,82 @@ class LotController extends Controller
         ]);
 
         return response()->json($message->load('user'), 201);
+    }
+
+    private function applyFilters($query, Request $request): void
+    {
+        if ($search = $request->string('q')->toString()) {
+            $query->where(function ($q) use ($search) {
+                $q->where('vin', 'like', "%{$search}%")
+                    ->orWhere('lot_number', 'like', "%{$search}%")
+                    ->orWhere('transport_name', 'like', "%{$search}%");
+            });
+        }
+        if ($vin = $request->string('vin')->toString()) {
+            $query->where('vin', 'like', "%{$vin}%");
+        }
+        if ($lot = $request->string('lot')->toString()) {
+            $query->where('lot_number', 'like', "%{$lot}%");
+        }
+        if ($status = $request->string('status_order')->toString()) {
+            $query->where('status_order', $status);
+        }
+        if ($statusId = $request->integer('status_order_id') ?: $request->integer('status_id')) {
+            $query->where('status_order_id', $statusId);
+        }
+        if ($buyer = $request->integer('buyer_user_id')) {
+            $query->where('buyer_user_id', $buyer);
+        }
+        if ($buyerName = $request->string('buyer')->toString()) {
+            $query->whereHas('buyer', function ($q) use ($buyerName) {
+                $q->where(function ($inner) use ($buyerName) {
+                    $inner->where('nickname', 'like', "%{$buyerName}%")
+                        ->orWhere('name', 'like', "%{$buyerName}%")
+                        ->orWhere('email', 'like', "%{$buyerName}%");
+                });
+            });
+        }
+        if ($mark = $request->string('markModel')->toString() ?: $request->string('model')->toString()) {
+            $query->where(function ($q) use ($mark) {
+                $q->where('transport_name', 'like', "%{$mark}%")
+                    ->orWhereHas('brand', fn ($b) => $b->where('name', 'like', "%{$mark}%"))
+                    ->orWhereHas('model', fn ($m) => $m->where('name', 'like', "%{$mark}%"));
+            });
+        }
+        if ($cp = $request->integer('counterparty_id')) {
+            $query->where('counterparty_id', $cp);
+        }
+        if ($city = $request->integer('city_id')) {
+            $query->whereHas('route', function ($q) use ($city) {
+                $q->where(function ($inner) use ($city) {
+                    $inner->where('city_to_id', $city)->orWhere('city_from_id', $city);
+                });
+            });
+        }
+        if ($port = $request->integer('port_id')) {
+            $query->whereHas('route', fn ($q) => $q->where('port_to_id', $port));
+        }
+        if ($from = $request->string('date_from')->toString()) {
+            $query->whereDate('date_buy', '>=', $from);
+        }
+        if ($to = $request->string('date_to')->toString()) {
+            $query->whereDate('date_buy', '<=', $to);
+        }
+        if ($email = $request->string('email')->toString()) {
+            $query->whereHas('client', fn ($q) => $q->where('email', 'like', "%{$email}%"));
+        }
+        if ($surname = $request->string('second_name')->toString()) {
+            $query->whereHas('client', function ($q) use ($surname) {
+                $q->where(function ($inner) use ($surname) {
+                    $inner->where('last_name', 'like', "%{$surname}%")
+                        ->orWhere('full_name', 'like', "%{$surname}%");
+                });
+            });
+        }
+        if ($request->boolean('archived')) {
+            $query->where('archived', true);
+        } else {
+            $query->where('archived', false);
+        }
     }
 }

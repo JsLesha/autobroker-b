@@ -8,16 +8,23 @@ use App\Models\City;
 use App\Models\Country;
 use App\Models\Counterparty;
 use App\Models\Credential;
+use App\Models\DeliveryType;
+use App\Models\DocFee;
+use App\Models\Location;
 use App\Models\Port;
+use App\Models\StatusOrder;
+use App\Models\TransportationAgent;
 use App\Models\TransportBrand;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class CatalogController extends Controller
 {
     public function countries(): JsonResponse
     {
-        return response()->json(Country::query()->where('active', true)->orderBy('name')->get());
+        return response()->json(Cache::remember('catalog:countries', 3600, fn () => Country::query()->where('active', true)->orderBy('name')->get()));
     }
 
     public function cities(Request $request): JsonResponse
@@ -37,7 +44,12 @@ class CatalogController extends Controller
 
     public function auctions(): JsonResponse
     {
-        return response()->json(Auction::query()->where('active', true)->orderBy('name')->get());
+        return response()->json(Cache::remember('catalog:auctions', 3600, fn () => Auction::query()->where('active', true)->orderBy('name')->get()));
+    }
+
+    public function statuses(): JsonResponse
+    {
+        return response()->json(Cache::remember('catalog:status_orders', 3600, fn () => StatusOrder::query()->orderBy('sort')->get()));
     }
 
     public function brands(): JsonResponse
@@ -69,6 +81,33 @@ class CatalogController extends Controller
         ]);
 
         return response()->json(Counterparty::query()->create($data), 201);
+    }
+
+    public function docFees(): JsonResponse
+    {
+        return response()->json(DocFee::query()->where('active', true)->orderBy('title')->get());
+    }
+
+    public function deliveryTypes(): JsonResponse
+    {
+        return response()->json(DeliveryType::query()->orderBy('title')->get());
+    }
+
+    public function locations(): JsonResponse
+    {
+        return response()->json(Location::query()->orderBy('name')->get());
+    }
+
+    public function agents(): JsonResponse
+    {
+        return response()->json(TransportationAgent::query()->where('active', true)->orderBy('name')->get());
+    }
+
+    public function statusShippings(): JsonResponse
+    {
+        return response()->json(
+            Cache::remember('catalog:status_shippings', 3600, fn () => DB::table('status_shippings')->orderBy('sort')->orderBy('id')->get())
+        );
     }
 
     public function credentials(Request $request): JsonResponse

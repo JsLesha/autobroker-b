@@ -23,6 +23,7 @@ Route::prefix('v1')->group(function (): void {
     Route::get('ports', [CatalogController::class, 'ports']);
     Route::get('auctions', [CatalogController::class, 'auctions']);
     Route::get('brands', [CatalogController::class, 'brands']);
+    Route::get('status-orders', [CatalogController::class, 'statuses']);
     Route::get('prebid/listings', [PrebidController::class, 'listings']);
     Route::post('integrations/vin-check/callback', [IntegrationController::class, 'vinCallback']);
     Route::post('integrations/telegram/webhook', [IntegrationController::class, 'telegramWebhook']);
@@ -37,11 +38,14 @@ Route::prefix('v1')->group(function (): void {
         Route::get('users/{user}', [UserController::class, 'show']);
 
         Route::get('lots', [LotController::class, 'index']);
+        Route::get('lots/dictionaries', [LotController::class, 'dictionaries']);
         Route::post('lots', [LotController::class, 'store']);
         Route::get('lots/{lot}', [LotController::class, 'show']);
         Route::patch('lots/{lot}', [LotController::class, 'update']);
         Route::post('lots/{lot}/images', [LotController::class, 'storeImage']);
         Route::post('lots/{lot}/messages', [LotController::class, 'storeMessage']);
+        Route::get('lots/{lot}/notes', [LotController::class, 'notes']);
+        Route::post('lots/{lot}/notes', [LotController::class, 'storeNote']);
 
         Route::get('shipping', [LogisticsController::class, 'shipping']);
         Route::patch('shipping/{shipping}', [LogisticsController::class, 'updateShipping']);
@@ -61,6 +65,11 @@ Route::prefix('v1')->group(function (): void {
         Route::get('erip', [WalletController::class, 'erip']);
         Route::post('erip/{erip}/confirm', [WalletController::class, 'confirmErip']);
 
+        Route::get('doc-fees', [CatalogController::class, 'docFees']);
+        Route::get('delivery-types', [CatalogController::class, 'deliveryTypes']);
+        Route::get('locations', [CatalogController::class, 'locations']);
+        Route::get('transportation-agents', [CatalogController::class, 'agents']);
+        Route::get('status-shippings', [CatalogController::class, 'statusShippings']);
         Route::get('rates', [RateController::class, 'index']);
 
         Route::get('counterparties', [CatalogController::class, 'counterparties']);
@@ -72,5 +81,13 @@ Route::prefix('v1')->group(function (): void {
         Route::post('prebid/listings/{listing}/moderate', [PrebidController::class, 'moderate']);
 
         Route::get('integrations/status', [IntegrationController::class, 'status']);
+    });
+});
+
+Route::prefix('v2')->group(function (): void {
+    Route::get('listings', [PrebidController::class, 'listings']);
+    Route::middleware(['auth:sanctum', 'active'])->group(function (): void {
+        Route::post('listings/{listing}/bid', [PrebidController::class, 'bid']);
+        Route::post('listings/{listing}/moderate', [PrebidController::class, 'moderate']);
     });
 });

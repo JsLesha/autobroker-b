@@ -46,6 +46,10 @@ paths:
   /lots:
     get:
       security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: query, name: q, schema: { type: string } }
+        - { in: query, name: status_order, schema: { type: string } }
+        - { in: query, name: archived, schema: { type: boolean } }
       responses: { "200": { description: paginated lots } }
     post:
       security: [{ bearerAuth: [] }]
@@ -55,7 +59,15 @@ paths:
       security: [{ bearerAuth: [] }]
       parameters:
         - { in: path, name: lot, required: true, schema: { type: integer } }
-      responses: { "200": { description: lot card } }
+      responses: { "200": { description: lot card with vehicle/client/pricing/shipping } }
+    patch:
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: lot, required: true, schema: { type: integer } }
+      responses: { "200": { description: updated } }
+  /status-orders:
+    get:
+      responses: { "200": { description: order statuses } }
   /calculator/quote:
     post:
       responses: { "200": { description: public quote } }

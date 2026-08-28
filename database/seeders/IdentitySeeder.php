@@ -49,8 +49,15 @@ class IdentitySeeder extends Seeder
         $finance = Role::query()->where('code', RoleCode::Finance)->first();
         $master = Role::query()->where('code', RoleCode::Master)->first();
 
-        $this->grant($dealer, ['lots.read', 'lots.create', 'directory.read', 'prebid.read', 'prebid.create']);
-        $this->grant($office, ['lots.read', 'lots.create', 'lots.update', 'directory.read']);
+        $this->grant($dealer, [
+            'lots.read', 'lots.create', 'lots.update',
+            'directory.read', 'counterparties.read', 'credentials.read',
+            'prebid.read', 'prebid.create',
+        ]);
+        $this->grant($office, [
+            'lots.read', 'lots.create', 'lots.update',
+            'directory.read', 'counterparties.read', 'credentials.read',
+        ]);
         $this->grant($logist, ['lots.read', 'logistics.read', 'logistics.update', 'containers.read', 'containers.create', 'containers.update']);
         $this->grant($finance, ['lots.read', 'finance.read', 'finance.update', 'wallets.read', 'wallets.update']);
         $this->grant($master, Permission::query()->pluck('code')->all());

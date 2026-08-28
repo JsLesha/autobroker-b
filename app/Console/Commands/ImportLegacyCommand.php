@@ -2,21 +2,22 @@
 
 namespace App\Console\Commands;
 
-use App\Models\LegacyIdMap;
+use App\Etl\IdMapper;
+use App\Etl\ImportPipeline;
+use App\Etl\Sources\DatabaseLegacySource;
+use App\Etl\Sources\DumpLegacySource;
 use App\Models\Lot;
 use App\Models\User;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 
 class ImportLegacyCommand extends Command
 {
     protected $signature = 'legacy:import
-        {--path= : Path to SQL dump or JSON snapshot}
+        {--path= : Path to SQL dump}
         {--sanitize : Mask PII and wipe auction secrets}
-        {--dry-run : Do not write}';
+        {--dry-run : Count and map only, do not write}';
 
-    protected $description = 'ETL from production Autobroker dump into the new schema';
+    protected $description = 'ETL from legacy MySQL (dump or LEGACY_DB_*) into PostgreSQL';
 
     public function handle(): int
     {
@@ -24,40 +25,48 @@ class ImportLegacyCommand extends Command
         $sanitize = (bool) $this->option('sanitize');
         $dry = (bool) $this->option('dry-run');
 
-        if (! $path) {
-            $this->warn('No dump path. Running mapping rehearsal against empty snapshot.');
-        } elseif (! is_readable($path)) {
-            $this->error('Dump not readable: '.$path);
+        $dbSource = new DatabaseLegacySource;
+        if (is_string($path) && $path !== '') {
+            if (! is_readable($path)) {
+                $this->error('Dump not readable: '.$path);
+
+                return self::FAILURE;
+            }
+            $source = new DumpLegacySource($path);
+            $this->info('Source: SQL dump '.$path);
+            if ($source->insertCount() === 0) {
+                $this->warn('Dump has no INSERT rows (schema-only). Dry-run will report zeros; connect LEGACY_DB_* or pass a data dump to load rows.');
+            }
+        } elseif ($dbSource->available() && filled(config('database.connections.legacy.host'))) {
+            $source = $dbSource;
+            $this->info('Source: MySQL connection legacy');
+        } else {
+            $this->error('Provide --path=dump.sql or set LEGACY_DB_HOST.');
 
             return self::FAILURE;
         }
 
-        $this->info('Order: directories → users → counterparties → lots → shipping/finance → containers → wallets → chats → prebid');
+        $this->info('Order: directories → identity → counterparties → lots → notes → shipping/finance → containers → wallets → chats → prebid');
 
-        if ($dry) {
-            $this->info('Dry-run complete. checksums would run after load.');
+        $pipeline = new ImportPipeline($source, new IdMapper, $sanitize, $dry);
+        $pipeline->run();
 
-            return self::SUCCESS;
+        $rows = [];
+        foreach ($pipeline->counts as $step => $count) {
+            $rows[] = [$step, (string) $count];
         }
-
-        $admin = User::query()->where('email', 'admin@autobroker.local')->first();
-        if ($admin) {
-            LegacyIdMap::query()->updateOrCreate(
-                ['entity' => 'users', 'old_id' => 1],
-                ['new_id' => $admin->id],
-            );
+        try {
+            $rows[] = ['lots_now', (string) Lot::query()->count()];
+            $rows[] = ['users_now', (string) User::query()->count()];
+        } catch (\Throwable) {
+            $rows[] = ['lots_now', 'n/a (no target DB in this process)'];
+            $rows[] = ['users_now', 'n/a'];
         }
+        $this->table(['step', 'rows'], $rows);
 
-        if ($sanitize && $admin) {
-            $admin->forceFill(['password' => Hash::make('Password123!')])->save();
-        }
-
-        $this->table(['entity', 'mapped'], [
-            ['users', (string) LegacyIdMap::query()->where('entity', 'users')->count()],
-            ['lots', (string) Lot::query()->count()],
-        ]);
-
-        $this->info('Target is PostgreSQL. Source dump is still MySQL (prod). Pass --path to a dump or point LEGACY_DB_* at a replica.');
+        $this->info($dry
+            ? 'Dry-run complete. Target is PostgreSQL.'
+            : 'ETL finished. Target is PostgreSQL.');
 
         return self::SUCCESS;
     }

@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -51,9 +52,14 @@ class User extends Authenticatable
         return $this->hasMany(UserDocument::class);
     }
 
+    public function extraPermissions(): BelongsToMany
+    {
+        return $this->belongsToMany(Permission::class, 'user_permission');
+    }
+
     public function roleCode(): ?RoleCode
     {
-        return $this->role?->code;
+        return RoleCode::tryFrom((string) ($this->role?->code ?? ''));
     }
 
     public function isAdminLike(): bool
@@ -71,7 +77,11 @@ class User extends Authenticatable
             $this->load('role.permissions');
         }
 
-        return $this->role?->permissions->contains('code', $code) ?? false;
+        if ($this->role?->permissions->contains('code', $code)) {
+            return true;
+        }
+
+        return $this->extraPermissions()->where('permissions.code', $code)->exists();
     }
 
     public function publicOfferPhase(): string

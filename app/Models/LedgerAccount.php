@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['type', 'owner_type', 'owner_id', 'currency', 'title', 'active'])]
+#[Fillable(['type', 'owner_type', 'owner_id', 'currency', 'title', 'active', 'legacy_balance'])]
 class LedgerAccount extends Model
 {
     protected function casts(): array

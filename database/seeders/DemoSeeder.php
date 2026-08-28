@@ -6,7 +6,9 @@ use App\Enums\RoleCode;
 use App\Models\Auction;
 use App\Models\Country;
 use App\Models\City;
+use App\Models\Counterparty;
 use App\Models\LedgerAccount;
+use App\Models\Location;
 use App\Models\Port;
 use App\Models\RateCard;
 use App\Models\RateItem;
@@ -42,9 +44,18 @@ class DemoSeeder extends Seeder
         Port::query()->updateOrCreate(['name' => 'Poti'], ['country_id' => $us->id, 'code' => 'POTI']);
         Auction::query()->updateOrCreate(['code' => 'copart'], ['name' => 'Copart', 'active' => true]);
         Auction::query()->updateOrCreate(['code' => 'iaai'], ['name' => 'IAAI', 'active' => true]);
+        Location::query()->updateOrCreate(['name' => 'Copart New Jersey'], ['type' => 'auction']);
+        Counterparty::query()->updateOrCreate(
+            ['code' => 'demo'],
+            ['name' => 'Demo counterparty', 'type' => 'dealer', 'active' => true],
+        );
 
         $toyota = TransportBrand::query()->updateOrCreate(['name' => 'Toyota']);
         TransportModel::query()->updateOrCreate(['brand_id' => $toyota->id, 'name' => 'Camry']);
+
+        foreach (['new' => 'Новый', 'won' => 'Выкуплен', 'archive' => 'Архив'] as $code => $title) {
+            \App\Models\StatusOrder::query()->updateOrCreate(['code' => $code], ['title' => $title]);
+        }
 
         LedgerAccount::query()->updateOrCreate(['title' => 'Касса USD', 'type' => 'cash'], [
             'owner_type' => 'platform',

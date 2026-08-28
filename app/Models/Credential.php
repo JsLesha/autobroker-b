@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['auction_id', 'user_id', 'login', 'secret', 'active'])]
+#[Fillable(['auction_id', 'user_id', 'counterparty_id', 'login', 'secret', 'buyer_code', 'active'])]
 #[Hidden(['secret'])]
 class Credential extends Model
 {

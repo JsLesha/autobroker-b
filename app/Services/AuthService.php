@@ -72,7 +72,7 @@ class AuthService
             'name' => $user->name,
             'email' => $user->email,
             'active' => $user->active,
-            'role' => $user->role?->code?->value,
+            'role' => $user->role?->code,
             'rights' => $user->isAdminLike()
                 ? ['*']
                 : $user->role?->permissions->pluck('code')->values()->all() ?? [],

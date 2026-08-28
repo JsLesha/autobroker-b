@@ -7,7 +7,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['number', 'status', 'created_by', 'confirmed_at', 'loaded_at', 'archived_at'])]
+#[Fillable([
+    'number', 'status', 'created_by', 'confirmed_at', 'loaded_at', 'archived_at',
+    'sea_line_id', 'port_id', 'port_from_id', 'shipper_id', 'consolidation', 'is_full', 'l_date', 'pod',
+])]
 class Container extends Model
 {
     use SoftDeletes;
