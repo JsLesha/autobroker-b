@@ -34,7 +34,7 @@ class PrebidTest extends TestCase
             ->postJson('/api/v1/prebid/listings/'.$listing->id.'/bid', ['amount' => 1100])
             ->assertCreated();
 
-        $this->assertDatabaseHas('prebid_listings', ['id' => $listing->id, 'current_price' => 1100]);
+        $this->assertSame('1100.00', (string) $listing->fresh()->current_price);
     }
 
     private function user(RoleCode $code): User
