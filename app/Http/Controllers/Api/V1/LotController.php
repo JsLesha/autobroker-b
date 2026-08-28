@@ -211,6 +211,21 @@ class LotController extends Controller
         return response()->json($drop, 201);
     }
 
+    public function dropFile(Lot $lot, LotDrop $drop): Response
+    {
+        $this->authorize('view', $lot);
+        abort_unless($drop->lot_id === $lot->id, 404);
+        abort_unless($drop->document_path, 404);
+
+        $disk = Storage::disk('local');
+        abort_unless($disk->exists($drop->document_path), 404);
+
+        return response($disk->get($drop->document_path), 200, [
+            'Content-Type' => $disk->mimeType($drop->document_path) ?: 'application/octet-stream',
+            'Content-Disposition' => 'attachment; filename="'.basename($drop->document_path).'"',
+        ]);
+    }
+
     public function notifications(Lot $lot): JsonResponse
     {
         $this->authorize('view', $lot);

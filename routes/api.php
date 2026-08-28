@@ -60,6 +60,7 @@ Route::prefix('v1')->group(function (): void {
         Route::get('lots/{lot}/notes', [LotController::class, 'notes']);
         Route::post('lots/{lot}/notes', [LotController::class, 'storeNote']);
         Route::post('lots/{lot}/drops', [LotController::class, 'storeDrop']);
+        Route::get('lots/{lot}/drops/{drop}/file', [LotController::class, 'dropFile']);
         Route::get('lots/{lot}/notifications', [LotController::class, 'notifications']);
         Route::post('lots/{lot}/notifications', [LotController::class, 'storeNotification']);
         Route::get('lots/{lot}/export', [LotController::class, 'export']);
