@@ -18,9 +18,13 @@ class Container extends Model
     protected function casts(): array
     {
         return [
+            'consolidation' => 'boolean',
+            'is_full' => 'boolean',
             'confirmed_at' => 'datetime',
             'loaded_at' => 'datetime',
             'archived_at' => 'datetime',
+            'l_date' => 'datetime',
+            'pod' => 'datetime',
         ];
     }
 

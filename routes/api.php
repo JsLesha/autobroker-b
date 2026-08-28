@@ -51,7 +51,11 @@ Route::prefix('v1')->group(function (): void {
         Route::patch('shipping/{shipping}', [LogisticsController::class, 'updateShipping']);
         Route::get('containers', [LogisticsController::class, 'containers']);
         Route::post('containers', [LogisticsController::class, 'storeContainer']);
+        Route::get('containers/{container}', [LogisticsController::class, 'showContainer']);
+        Route::patch('containers/{container}', [LogisticsController::class, 'updateContainer']);
         Route::get('local-hauls', [LogisticsController::class, 'hauls']);
+        Route::post('local-hauls', [LogisticsController::class, 'storeHaul']);
+        Route::patch('local-hauls/{haul}', [LogisticsController::class, 'updateHaul']);
 
         Route::get('lots/{lot}/finance-lines', [FinanceController::class, 'lines']);
         Route::post('lots/{lot}/finance-lines', [FinanceController::class, 'upsertLine']);
