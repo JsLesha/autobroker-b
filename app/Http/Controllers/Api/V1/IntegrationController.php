@@ -9,6 +9,7 @@ use App\Integrations\Copart\CopartClient;
 use App\Integrations\Telegram\TelegramClient;
 use App\Integrations\VinCheck\VinCheckClient;
 use App\Jobs\IngestExternalEventJob;
+use App\Models\IntegrationLog;
 use App\Models\VinCheckReport;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -30,8 +31,43 @@ class IntegrationController extends Controller
         return response()->json(array_map(fn ($c) => [
             'provider' => $c->name(),
             'ok' => $c->ping(),
-            'mode' => 'stub',
+            'mode' => $c->name() === 'vin_check' && filled(config('services.vin_check.base_url')) ? 'live' : 'stub',
         ], $clients));
+    }
+
+    public function logs(Request $request): JsonResponse
+    {
+        abort_unless($request->user()?->isAdminLike(), 403);
+
+        return response()->json(
+            IntegrationLog::query()->orderByDesc('id')->limit(100)->get()
+        );
+    }
+
+    public function vinCheck(Request $request, VinCheckClient $client): JsonResponse
+    {
+        abort_unless($request->user()?->hasPermission('lots.read'), 403);
+        $data = $request->validate(['vin' => ['required', 'string', 'max:32']]);
+        $info = $client->lookup($data['vin']);
+        $report = VinCheckReport::query()->create([
+            'vin' => $data['vin'],
+            'user_id' => $request->user()->id,
+            'info' => $info,
+        ]);
+        IngestExternalEventJob::dispatch('vin-check', $info);
+
+        return response()->json($report, 201);
+    }
+
+    public function vinReports(Request $request): JsonResponse
+    {
+        abort_unless($request->user()?->hasPermission('lots.read'), 403);
+        $query = VinCheckReport::query()->orderByDesc('id');
+        if ($vin = $request->string('vin')->toString()) {
+            $query->where('vin', $vin);
+        }
+
+        return response()->json($query->limit(50)->get());
     }
 
     public function vinCallback(Request $request): JsonResponse

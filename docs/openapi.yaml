@@ -32,6 +32,23 @@ paths:
       security: [{ bearerAuth: [] }]
       responses:
         "200": { description: ok }
+  /auth/forgot:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string }
+      responses:
+        "200": { description: always ok }
+  /auth/offer/accept:
+    post:
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: user payload }
   /auth/impersonate/{user}:
     post:
       security: [{ bearerAuth: [] }]
@@ -43,11 +60,48 @@ paths:
       responses:
         "200": { description: impersonation token }
         "403": { description: not admin }
+  /users:
+    get:
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: query, name: role, schema: { type: string } }
+        - { in: query, name: q, schema: { type: string } }
+        - { in: query, name: archived, schema: { type: boolean } }
+      responses: { "200": { description: paginated users } }
+    post:
+      security: [{ bearerAuth: [] }]
+      responses: { "201": { description: created } }
+  /users/{user}:
+    get:
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: user, required: true, schema: { type: integer } }
+      responses: { "200": { description: user } }
+    patch:
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: user, required: true, schema: { type: integer } }
+      responses: { "200": { description: updated } }
+  /roles:
+    get:
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { description: roles with permissions } }
+  /permissions:
+    get:
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { description: permission catalog } }
+  /roles/{role}/permissions:
+    put:
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: role, required: true, schema: { type: integer } }
+      responses: { "200": { description: synced } }
   /lots:
     get:
       security: [{ bearerAuth: [] }]
       parameters:
         - { in: query, name: q, schema: { type: string } }
+        - { in: query, name: vin, schema: { type: string } }
         - { in: query, name: status_order, schema: { type: string } }
         - { in: query, name: archived, schema: { type: boolean } }
       responses: { "200": { description: paginated lots } }
@@ -65,21 +119,136 @@ paths:
       parameters:
         - { in: path, name: lot, required: true, schema: { type: integer } }
       responses: { "200": { description: updated } }
+  /lots/{lot}/notes:
+    get:
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: lot, required: true, schema: { type: integer } }
+      responses: { "200": { description: notes } }
+    post:
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: lot, required: true, schema: { type: integer } }
+      responses: { "201": { description: created } }
+  /lots/{lot}/drops:
+    post:
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: lot, required: true, schema: { type: integer } }
+      responses: { "201": { description: drop created } }
+  /lots/{lot}/notifications:
+    get:
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: lot, required: true, schema: { type: integer } }
+      responses: { "200": { description: lot notifications } }
+    post:
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: lot, required: true, schema: { type: integer } }
+      responses: { "201": { description: created } }
+  /lots/{lot}/export:
+    get:
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: lot, required: true, schema: { type: integer } }
+      responses: { "200": { description: counterparty export } }
+  /lots/{lot}/invoices:
+    get:
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: lot, required: true, schema: { type: integer } }
+      responses: { "200": { description: invoices } }
+    post:
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: lot, required: true, schema: { type: integer } }
+      responses: { "201": { description: created } }
+  /lots/{lot}/invoices/{invoice}/preview:
+    post:
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: lot, required: true, schema: { type: integer } }
+        - { in: path, name: invoice, required: true, schema: { type: integer } }
+      responses: { "200": { description: preview token } }
+  /containers:
+    get:
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { description: containers } }
+    post:
+      security: [{ bearerAuth: [] }]
+      responses: { "201": { description: created } }
+  /local-hauls:
+    get:
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { description: hauls } }
+    post:
+      security: [{ bearerAuth: [] }]
+      responses: { "201": { description: created } }
+  /wallets:
+    get:
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { description: accounts } }
+  /wallets/entries:
+    get:
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { description: ledger entries } }
+  /wallets/transfer:
+    post:
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { description: transfer } }
+  /wallets/checksum:
+    get:
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { description: ledger checksum } }
+  /erip:
+    get:
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { description: list } }
+    post:
+      security: [{ bearerAuth: [] }]
+      responses: { "201": { description: created } }
+  /prebid/listings:
+    get:
+      responses: { "200": { description: public listings } }
+    post:
+      security: [{ bearerAuth: [] }]
+      responses: { "201": { description: created } }
+  /integrations/status:
+    get:
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { description: provider ping } }
+  /integrations/logs:
+    get:
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { description: recent logs } }
+  /integrations/vin-check:
+    post:
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [vin]
+              properties:
+                vin: { type: string }
+      responses: { "201": { description: report } }
   /status-orders:
     get:
       responses: { "200": { description: order statuses } }
   /calculator/quote:
     post:
       responses: { "200": { description: public quote } }
-  /wallets/checksum:
-    get:
-      security: [{ bearerAuth: [] }]
-      responses: { "200": { description: ledger checksum } }
   /public/invoice/{token}:
     get:
       parameters:
         - { in: path, name: token, required: true, schema: { type: string } }
       responses: { "200": { description: preview } }
+    post:
+      parameters:
+        - { in: path, name: token, required: true, schema: { type: string } }
+      responses: { "200": { description: accept or reject } }
 components:
   securitySchemes:
     bearerAuth:

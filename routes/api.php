@@ -101,6 +101,9 @@ Route::prefix('v1')->group(function (): void {
         Route::post('prebid/listings/{listing}/moderate', [PrebidController::class, 'moderate']);
 
         Route::get('integrations/status', [IntegrationController::class, 'status']);
+        Route::get('integrations/logs', [IntegrationController::class, 'logs']);
+        Route::post('integrations/vin-check', [IntegrationController::class, 'vinCheck']);
+        Route::get('integrations/vin-reports', [IntegrationController::class, 'vinReports']);
     });
 });
 
