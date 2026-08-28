@@ -15,8 +15,10 @@ use App\Services\LotSearchService;
 use App\Services\LotService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 
 class LotController extends Controller
 {
@@ -121,6 +123,19 @@ class LotController extends Controller
         ]);
 
         return response()->json($image, 201);
+    }
+
+    public function imageFile(Lot $lot, LotImage $image): Response
+    {
+        $this->authorize('view', $lot);
+        abort_unless($image->lot_id === $lot->id, 404);
+
+        $disk = Storage::disk('local');
+        abort_unless($disk->exists($image->path), 404);
+
+        return response($disk->get($image->path), 200, [
+            'Content-Type' => $disk->mimeType($image->path) ?: 'application/octet-stream',
+        ]);
     }
 
     public function notes(Lot $lot): JsonResponse

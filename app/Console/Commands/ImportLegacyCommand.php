@@ -8,6 +8,7 @@ use App\Etl\Sources\DatabaseLegacySource;
 use App\Etl\Sources\DumpLegacySource;
 use App\Models\Lot;
 use App\Models\User;
+use App\Services\LotSearchService;
 use Illuminate\Console\Command;
 
 class ImportLegacyCommand extends Command
@@ -15,11 +16,12 @@ class ImportLegacyCommand extends Command
     protected $signature = 'legacy:import
         {--path= : Path to SQL dump}
         {--sanitize : Mask PII and wipe auction secrets}
-        {--dry-run : Count and map only, do not write}';
+        {--dry-run : Count and map only, do not write}
+        {--reindex : Upsert imported lots into Meilisearch after ETL}';
 
     protected $description = 'ETL from legacy MySQL (dump or LEGACY_DB_*) into PostgreSQL';
 
-    public function handle(): int
+    public function handle(LotSearchService $search): int
     {
         $path = $this->option('path');
         $sanitize = (bool) $this->option('sanitize');
@@ -67,6 +69,21 @@ class ImportLegacyCommand extends Command
         $this->info($dry
             ? 'Dry-run complete. Target is PostgreSQL.'
             : 'ETL finished. Target is PostgreSQL.');
+
+        if ($this->option('reindex') && ! $dry) {
+            if (rtrim((string) config('services.meilisearch.host'), '/') === '') {
+                $this->warn('Skipping reindex: MEILISEARCH_HOST is not configured.');
+            } else {
+                $count = 0;
+                Lot::query()->orderBy('id')->chunkById(200, function ($lots) use ($search, &$count) {
+                    foreach ($lots as $lot) {
+                        $search->upsert($lot);
+                        $count++;
+                    }
+                });
+                $this->info("Reindexed {$count} lot(s) in Meilisearch.");
+            }
+        }
 
         return self::SUCCESS;
     }

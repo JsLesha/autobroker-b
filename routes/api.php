@@ -54,6 +54,7 @@ Route::prefix('v1')->group(function (): void {
         Route::get('lots/{lot}', [LotController::class, 'show']);
         Route::patch('lots/{lot}', [LotController::class, 'update']);
         Route::post('lots/{lot}/images', [LotController::class, 'storeImage']);
+        Route::get('lots/{lot}/images/{image}/file', [LotController::class, 'imageFile']);
         Route::post('lots/{lot}/messages', [LotController::class, 'storeMessage']);
         Route::get('lots/{lot}/messages', [LotController::class, 'messages']);
         Route::get('lots/{lot}/notes', [LotController::class, 'notes']);
